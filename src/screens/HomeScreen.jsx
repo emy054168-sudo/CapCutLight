@@ -12,7 +12,7 @@ import ImagePicker from 'react-native-image-crop-picker';
 import Video from 'react-native-video';
 
 const HomeScreen = ({ navigation }) => {
-  const [videoUri, setVideoUri] = useState(null);
+  const [selectedVideos, setSelectedVideos] = useState([]);
 
   const requestPermission = async () => {
   if (Platform.OS === 'android') {
@@ -32,17 +32,58 @@ const HomeScreen = ({ navigation }) => {
 };   
 
 const pickVideo = async () => {
+  const granted = await requestPermission();
+  if (!granted) {
+    Alert.alert('Autorisation requise', 'Autorise l\'accès aux vidéos pour sélectionner un clip.');
+    return;
+  }
+
   try {
     const video = await ImagePicker.openPicker({
       mediaType: 'video',
       cropping: false,
     });
-    setVideoUri(video.path);
+    if (Array.isArray(video)) {
+      setSelectedVideos(video.map((item) => item.path || item.uri));
+    } else {
+      setSelectedVideos([video.path || video.uri]);
+    }
   } catch (e) {
     if (e.code !== 'E_PICKER_CANCELLED') {
       Alert.alert('Erreur', 'Impossible d\'ouvrir la galerie.');
     }
   }
+};
+
+const pickVideos = async () => {
+  const granted = await requestPermission();
+  if (!granted) {
+    Alert.alert('Autorisation requise', 'Autorise l\'accès aux vidéos pour sélectionner plusieurs clips.');
+    return;
+  }
+
+  try {
+    const videos = await ImagePicker.openPicker({
+      mediaType: 'video',
+      multiple: true,
+      cropping: false,
+    });
+    if (Array.isArray(videos) && videos.length > 0) {
+      setSelectedVideos(videos.map((item) => item.path || item.uri));
+    }
+  } catch (e) {
+    if (e.code !== 'E_PICKER_CANCELLED') {
+      Alert.alert('Erreur', 'Impossible d\'ouvrir la galerie.');
+    }
+  }
+};
+
+const startEditing = () => {
+  if (selectedVideos.length === 0) {
+    Alert.alert('Attention', 'Sélectionne d\'abord une ou plusieurs vidéos.');
+    return;
+  }
+  navigation.navigate('Editor', { videoUris: selectedVideos });
 };
 
   return (
@@ -53,11 +94,19 @@ const pickVideo = async () => {
       <TouchableOpacity style={styles.btn} onPress={pickVideo}>
         <Text style={styles.btnText}>📹 Choisir une vidéo</Text>
       </TouchableOpacity>
+      <TouchableOpacity style={[styles.btn, styles.btnGray]} onPress={pickVideos}>
+        <Text style={styles.btnText}>🎞️ Choisir plusieurs vidéos</Text>
+      </TouchableOpacity>
 
-      {videoUri && (
+      {selectedVideos.length > 0 && (
         <>
+          <Text style={styles.selectedText}>
+            {selectedVideos.length === 1
+              ? '1 clip sélectionné'
+              : `${selectedVideos.length} clips sélectionnés`}
+          </Text>
           <Video
-            source={{ uri: videoUri }}
+            source={{ uri: selectedVideos[0] }}
             style={styles.preview}
             controls
             resizeMode="contain"
@@ -65,8 +114,10 @@ const pickVideo = async () => {
           />
           <TouchableOpacity
             style={[styles.btn, styles.btnGreen]}
-            onPress={() => navigation.navigate('Trim', { videoUri })}>
-            <Text style={styles.btnText}>✂️ Découper la vidéo</Text>
+            onPress={startEditing}>
+            <Text style={styles.btnText}>
+              {selectedVideos.length === 1 ? '🎨 Éditer le clip' : '🎬 Créer un montage'}
+            </Text>
           </TouchableOpacity>
         </>
       )}
@@ -102,6 +153,15 @@ const styles = StyleSheet.create({
   },
   btnGreen: {
     backgroundColor: '#00c853',
+  },
+  btnGray: {
+    backgroundColor: '#333',
+  },
+  selectedText: {
+    color: '#fff',
+    fontSize: 14,
+    marginTop: 16,
+    textAlign: 'center',
   },
   btnText: {
     color: '#fff',

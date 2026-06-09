@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 
 import HomeScreen from '../screens/HomeScreen';
 import TrimScreen from '../screens/TrimScreen';
+import EditorScreen from '../screens/EditorScreen';
 import UploadScreen from '../screens/UploadScreen';
 import GalleryScreen from '../screens/GalleryScreen';
 
@@ -22,6 +23,11 @@ const AppNavigator = () => {
           name="Trim"
           component={TrimScreen}
           options={{ title: '✂️ Découper' }}
+        />
+        <Stack.Screen
+          name="Editor"
+          component={EditorScreen}
+          options={{ title: '🎨 Édition' }}
         />
         <Stack.Screen
           name="Upload"
